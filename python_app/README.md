@@ -1,7 +1,8 @@
 
-# Python Uygulaması Seçenekleri
+# Python Uygulaması
 
-Bu klasör, Kitap Pastası POS uygulaması için iki farklı Python çözümü sunar.
+Bu klasör, Kitap Pastası POS uygulamasının Python sürümünü içerir.
+Kullanıcı arayüzünü birebir korumak için, derlenmiş web arayüzünü (`dist` klasörü) Python içinde çalıştıran bir yapı kullanır.
 
 ## Gereksinimler
 
@@ -11,49 +12,47 @@ Bu klasör, Kitap Pastası POS uygulaması için iki farklı Python çözümü s
    pip install -r python_app/requirements.txt
    ```
 
----
+## Çalıştırma (Geliştirme)
 
-## Seçenek 1: Birebir Aynı Arayüz (Önerilen)
-
-Eğer web uygulamasının **birebir aynısı** olan bir masaüstü uygulaması istiyorsanız bu seçeneği kullanın. Bu yöntem, oluşturulan web arayüzünü (`dist` klasörü) bir Python penceresi içinde çalıştırır.
-
-### Kurulum ve Çalıştırma
-
-1. Önce ana dizinde React uygulamasını derleyin:
+1. **Önce Arayüzü Derleyin:**
+   Web arayüzünün (HTML/CSS/JS) oluşturulması için ana dizinde şu komutları çalıştırın:
    ```bash
    npm install
    npm run build
    ```
    *(Bu işlem `dist` klasörünü oluşturacaktır)*
 
-2. Python uygulamasını başlatın:
+2. **Uygulamayı Başlatın:**
    ```bash
-   python python_app/run_with_webview.py
+   python python_app/main.py
    ```
-
-### .exe Dosyası Oluşturma
-
-```bash
-pip install pyinstaller
-pyinstaller --noconfirm --onefile --windowed --name "KitapPastasiPOS_Web" --add-data "dist;dist" python_app/run_with_webview.py
-```
-*Not: Windows'ta `--add-data "dist;dist"`, Mac/Linux'ta `--add-data "dist:dist"` kullanın.*
+   Bu komut, uygulamanın birebir arayüzünü içeren pencereyi açacaktır.
 
 ---
 
-## Seçenek 2: Saf Python Arayüzü (Tkinter)
+## Windows .exe Dosyası Oluşturma
 
-Eğer tamamen Python kütüphaneleri (Tkinter) ile yazılmış, web teknolojilerine ihtiyaç duymayan "native" bir uygulama istiyorsanız bu seçeneği kullanın. Arayüz web sürümüne **benzer** ancak birebir aynı değildir.
+Uygulamayı tek bir `.exe` dosyası olarak paketlemek için:
 
-### Çalıştırma
+1. PyInstaller yükleyin:
+   ```bash
+   pip install pyinstaller
+   ```
+
+2. Derleme komutunu çalıştırın:
+   ```bash
+   pyinstaller --noconfirm --onefile --windowed --name "KitapPastasiPOS" --add-data "dist;dist" python_app/main.py
+   ```
+   *Not: Windows için `;`, Mac/Linux için `:` ayracı kullanılır.*
+
+3. Oluşturulan `.exe` dosyası `dist/KitapPastasiPOS.exe` konumunda olacaktır.
+
+---
+
+## Alternatif: Native Arayüz (Tkinter)
+
+Eğer web teknolojilerine hiç bulaşmadan, saf Python arayüzünü (arayüz benzerdir ancak birebir aynı değildir) görmek isterseniz:
 
 ```bash
-python python_app/main.py
+python python_app/main_native_ui.py
 ```
-
-### .exe Dosyası Oluşturma
-
-```bash
-pyinstaller --noconfirm --onefile --windowed --name "KitapPastasiPOS_Native" --add-data "python_app/data;python_app/data" python_app/main.py
-```
-*Not: Windows'ta `--add-data "python_app/data;python_app/data"`, Mac/Linux'ta `--add-data "python_app/data:python_app/data"` kullanın.*
