@@ -1,36 +1,59 @@
 
-# Python Uygulaması Kurulumu
+# Python Uygulaması Seçenekleri
 
-Bu klasör, Kitap Pastası POS uygulamasının Python (Tkinter) sürümünü içerir.
+Bu klasör, Kitap Pastası POS uygulaması için iki farklı Python çözümü sunar.
 
 ## Gereksinimler
 
-- Python 3.8 veya üzeri
+1. Python 3.8 veya üzeri
+2. Bağımlılıkları yükleyin:
+   ```bash
+   pip install -r python_app/requirements.txt
+   ```
 
-## Çalıştırma
+---
 
-Terminalden şu komutu çalıştırın:
+## Seçenek 1: Birebir Aynı Arayüz (Önerilen)
+
+Eğer web uygulamasının **birebir aynısı** olan bir masaüstü uygulaması istiyorsanız bu seçeneği kullanın. Bu yöntem, oluşturulan web arayüzünü (`dist` klasörü) bir Python penceresi içinde çalıştırır.
+
+### Kurulum ve Çalıştırma
+
+1. Önce ana dizinde React uygulamasını derleyin:
+   ```bash
+   npm install
+   npm run build
+   ```
+   *(Bu işlem `dist` klasörünü oluşturacaktır)*
+
+2. Python uygulamasını başlatın:
+   ```bash
+   python python_app/run_with_webview.py
+   ```
+
+### .exe Dosyası Oluşturma
+
+```bash
+pip install pyinstaller
+pyinstaller --noconfirm --onefile --windowed --name "KitapPastasiPOS_Web" --add-data "dist;dist" python_app/run_with_webview.py
+```
+*Not: Windows'ta `--add-data "dist;dist"`, Mac/Linux'ta `--add-data "dist:dist"` kullanın.*
+
+---
+
+## Seçenek 2: Saf Python Arayüzü (Tkinter)
+
+Eğer tamamen Python kütüphaneleri (Tkinter) ile yazılmış, web teknolojilerine ihtiyaç duymayan "native" bir uygulama istiyorsanız bu seçeneği kullanın. Arayüz web sürümüne **benzer** ancak birebir aynı değildir.
+
+### Çalıştırma
 
 ```bash
 python python_app/main.py
 ```
 
-## Windows .exe Dosyası Oluşturma
+### .exe Dosyası Oluşturma
 
-Bu uygulamayı tek bir `.exe` dosyası haline getirmek için `pyinstaller` kullanabilirsiniz.
-
-1. PyInstaller'ı yükleyin:
-   ```bash
-   pip install pyinstaller
-   ```
-
-2. Uygulamayı derleyin:
-   ```bash
-   pyinstaller --noconfirm --onefile --windowed --name "KitapPastasiPOS" --add-data "python_app/data;python_app/data" python_app/main.py
-   ```
-
-   *Not: Windows üzerinde çalıştırırken `;` yerine `;` (noktalı virgül) kullanılır. Linux/Mac'te `:` kullanılır.*
-
-   Eğer `data` klasöründe sorun yaşarsanız, oluşturulan `.exe` dosyasının yanına `python_app/data` klasörünü manuel olarak kopyalayabilirsiniz veya kodda `data` yolunu `sys._MEIPASS` ile yönetecek şekilde güncelleyebilirsiniz.
-
-3. Oluşturulan dosya `dist/KitapPastasiPOS.exe` konumunda olacaktır.
+```bash
+pyinstaller --noconfirm --onefile --windowed --name "KitapPastasiPOS_Native" --add-data "python_app/data;python_app/data" python_app/main.py
+```
+*Not: Windows'ta `--add-data "python_app/data;python_app/data"`, Mac/Linux'ta `--add-data "python_app/data:python_app/data"` kullanın.*
