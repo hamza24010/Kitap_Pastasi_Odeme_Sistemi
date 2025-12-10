@@ -30,4 +30,4 @@ export interface Table {
   openedAt?: string; // ISO Date string
 }
 
-export type Page = 'dashboard' | 'pos' | 'menu' | 'settings';
+export type Page = 'dashboard' | 'pos' | 'menu' | 'settings' | 'admin';

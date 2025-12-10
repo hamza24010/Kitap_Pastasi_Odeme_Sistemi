@@ -4,6 +4,7 @@ import { TableGrid } from './components/TableGrid';
 import { OrderModal } from './components/OrderModal';
 import { MenuManagement } from './components/MenuManagement';
 import { Dashboard } from './components/Dashboard';
+import { AdminPanel } from './components/AdminPanel';
 import { StorageService } from './services/storageService';
 import { Page, Table, Product } from './types';
 
@@ -36,6 +37,18 @@ function App() {
     setProducts(updatedProducts);
   };
 
+  const handleClearTables = () => {
+    // Reset tables for next day, but keep IDs/Names
+    const resetTables = tables.map(t => ({
+      ...t,
+      isOccupied: false,
+      orders: [],
+      openedAt: undefined
+    }));
+    setTables(resetTables);
+    StorageService.saveTables(resetTables);
+  };
+
   const selectedTable = tables.find(t => t.id === selectedTableId);
 
   return (
@@ -44,7 +57,11 @@ function App() {
       
       <main className="flex-1 h-full overflow-hidden relative">
         {activePage === 'dashboard' && (
-          <Dashboard tables={tables} products={products} />
+          <Dashboard
+            tables={tables}
+            products={products}
+            onEndDay={handleClearTables}
+          />
         )}
 
         {activePage === 'pos' && (
@@ -53,6 +70,10 @@ function App() {
 
         {activePage === 'menu' && (
           <MenuManagement products={products} onUpdateProducts={handleUpdateProducts} />
+        )}
+
+        {activePage === 'admin' && (
+          <AdminPanel />
         )}
       </main>
 
