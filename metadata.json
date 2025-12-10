@@ -1,0 +1,5 @@
+{
+  "name": "Kitap Pastası POS",
+  "description": "Kitap Pastası kafe için sipariş takip, masa yönetimi ve menü düzenleme sistemi. Yapay zeka destekli içerik oluşturma ve sipariş takibi içerir.",
+  "requestFramePermissions": []
+}
