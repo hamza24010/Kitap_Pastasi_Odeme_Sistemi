@@ -1,49 +1,37 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Kitap Pastası POS
+# Kitap Pastası POS - Windows Uygulaması
 
-Kitap Pastası için geliştirilmiş ödeme ve sipariş takip sistemi.
+Bu proje, React ile geliştirilmiş POS sisteminin **birebir aynı arayüze sahip** Windows masaüstü uygulamasını oluşturur.
 
-Bu proje artık Windows masaüstü uygulaması olarak çalışabilmektedir.
+## 🚀 Hızlı Kurulum ve Oluşturma
 
-## Kurulum ve Çalıştırma
+Tek bir komutla uygulamanızı hazır hale getirebilirsiniz.
 
-**Gereksinimler:** Node.js (ve npm)
+**Gereksinimler:** Node.js ve Python yüklü olmalıdır.
 
-1. Proje dosyalarını indirin.
-2. Terminali açın ve proje klasörüne gidin.
-3. Bağımlılıkları yükleyin:
-   ```bash
-   npm install
-   ```
-4. `.env` dosyasını oluşturun ve `GEMINI_API_KEY` değişkenini ekleyin (Eğer AI özellikleri kullanılıyorsa).
-
-### Geliştirme Modu (Development)
-
-Uygulamayı hem web tarayıcısında hem de Electron penceresinde geliştirme modunda çalıştırmak için:
+1. Terminali açın.
+2. Aşağıdaki komutu çalıştırın:
 
 ```bash
-npm run electron:dev
+python build_app.py
 ```
 
-Bu komut:
-- Vite sunucusunu başlatır (localhost:3000).
-- Electron pencresini açar ve sunucuya bağlanır.
-- Yapılan değişiklikler anlık olarak yansır (Hot Reload).
+Bu script sırasıyla şunları yapacaktır:
+1. Gerekli kütüphaneleri yükler (npm & pip).
+2. Web arayüzünü derler (`npm run build`).
+3. Python ile web arayüzünü birleştirir.
+4. `dist` klasörü içinde **KitapPastasiPOS.exe** dosyasını oluşturur.
 
-### Windows Uygulaması Olarak Derleme (Build)
+Oluşturulan `.exe` dosyası tek başına çalışabilir ve kurulum gerektirmez.
 
-Uygulamayı `.exe` dosyası olarak paketlemek için:
+---
 
-1. Terminalde şu komutu çalıştırın:
-   ```bash
-   npm run electron:build
-   ```
+## Manuel Kurulum (Alternatif)
 
-2. İşlem tamamlandığında, `dist-electron` klasörü içinde kurulum dosyasını (`.exe`) bulabilirsiniz.
-   - Genellikle `dist-electron/Kitap Pastası POS Setup 1.0.0.exe` (veya benzeri) adında olacaktır.
-   - Ayrıca `dist-electron/win-unpacked` klasöründe kurulumsuz çalıştırılabilir hali de bulunabilir.
+Eğer script kullanmak istemezseniz manuel adımlar:
 
-**Not:** Bu işlem Windows işletim sistemi üzerinde yapılmalıdır (veya Linux/Mac üzerinde Wine gibi araçlar gerektirir).
+1. `npm install`
+2. `npm run build`
+3. `pip install -r python_app/requirements.txt`
+4. `python python_app/main.py` (Test için çalıştırma)
+5. `pyinstaller --noconfirm --onefile --windowed --name "KitapPastasiPOS" --add-data "dist;dist" python_app/main.py` (EXE oluşturma)

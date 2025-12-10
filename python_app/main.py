@@ -14,15 +14,10 @@ def get_free_port():
 
 def get_dist_path():
     if getattr(sys, 'frozen', False):
-        # Running as compiled .exe
-        # PyInstaller puts data in sys._MEIPASS
         base_path = sys._MEIPASS
-        # We will configure PyInstaller to put 'dist' at the root of _MEIPASS
         return os.path.join(base_path, 'dist')
     else:
-        # Running as script
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        # dist is in the project root, one level up
         return os.path.join(current_dir, '..', 'dist')
 
 def show_error(title, message):
@@ -36,11 +31,24 @@ def show_error(title, message):
     except ImportError:
         print(f"ERROR: {title}\n{message}")
 
+class SPAHandler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # Check if file exists, if not serve index.html (for SPA routing)
+        path = self.translate_path(self.path)
+        if not os.path.exists(path) or os.path.isdir(path):
+            # If strictly a directory, SimpleHTTPRequestHandler might serve a listing or index.html
+            # But if it's a route like /pos, translate_path might point to a non-existent file/dir
+            # We want to serve /index.html for any non-asset request
+            if not self.path.startswith('/assets/'):
+                self.path = '/index.html'
+
+        super().do_GET()
+
 def run_server(dist_path, port):
     os.chdir(dist_path)
-    # Bind to localhost only for security
     server_address = ('127.0.0.1', port)
-    httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
+    # Use custom handler for SPA support
+    httpd = HTTPServer(server_address, SPAHandler)
     print(f"Starting internal server on port {port}...")
     httpd.serve_forever()
 
@@ -61,12 +69,10 @@ def main():
         show_error("Dosya Bulunamadı", msg)
         sys.exit(1)
 
-    # Start a simple HTTP server in a separate thread
     port = get_free_port()
     t = threading.Thread(target=run_server, args=(dist_dir, port), daemon=True)
     t.start()
 
-    # Create the window
     webview.create_window(
         'Kitap Pastası POS',
         f'http://127.0.0.1:{port}',
@@ -76,7 +82,6 @@ def main():
         min_size=(800, 600)
     )
 
-    # Start the GUI loop
     webview.start()
 
 if __name__ == '__main__':
