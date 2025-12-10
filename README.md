@@ -2,19 +2,48 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# Kitap Pastası POS
 
-This contains everything you need to run your app locally.
+Kitap Pastası için geliştirilmiş ödeme ve sipariş takip sistemi.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1W_j84loku2KE_vPOn-3Y9LS-lZ3rsO02
+Bu proje artık Windows masaüstü uygulaması olarak çalışabilmektedir.
 
-## Run Locally
+## Kurulum ve Çalıştırma
 
-**Prerequisites:**  Node.js
+**Gereksinimler:** Node.js (ve npm)
 
+1. Proje dosyalarını indirin.
+2. Terminali açın ve proje klasörüne gidin.
+3. Bağımlılıkları yükleyin:
+   ```bash
+   npm install
+   ```
+4. `.env` dosyasını oluşturun ve `GEMINI_API_KEY` değişkenini ekleyin (Eğer AI özellikleri kullanılıyorsa).
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Geliştirme Modu (Development)
+
+Uygulamayı hem web tarayıcısında hem de Electron penceresinde geliştirme modunda çalıştırmak için:
+
+```bash
+npm run electron:dev
+```
+
+Bu komut:
+- Vite sunucusunu başlatır (localhost:3000).
+- Electron pencresini açar ve sunucuya bağlanır.
+- Yapılan değişiklikler anlık olarak yansır (Hot Reload).
+
+### Windows Uygulaması Olarak Derleme (Build)
+
+Uygulamayı `.exe` dosyası olarak paketlemek için:
+
+1. Terminalde şu komutu çalıştırın:
+   ```bash
+   npm run electron:build
+   ```
+
+2. İşlem tamamlandığında, `dist-electron` klasörü içinde kurulum dosyasını (`.exe`) bulabilirsiniz.
+   - Genellikle `dist-electron/Kitap Pastası POS Setup 1.0.0.exe` (veya benzeri) adında olacaktır.
+   - Ayrıca `dist-electron/win-unpacked` klasöründe kurulumsuz çalıştırılabilir hali de bulunabilir.
+
+**Not:** Bu işlem Windows işletim sistemi üzerinde yapılmalıdır (veya Linux/Mac üzerinde Wine gibi araçlar gerektirir).
