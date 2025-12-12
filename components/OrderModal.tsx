@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Table, Product, Category } from '../types';
 import { TransferModal } from './TransferModal';
-import { X, Plus, Minus, Trash2, CreditCard, Search, BookOpen, ArrowRightLeft } from 'lucide-react';
+import { X, Plus, Minus, Trash2, CreditCard, Search, BookOpen, ArrowRightLeft, UserMinus, Package } from 'lucide-react';
 
 interface OrderModalProps {
   table: Table;
@@ -11,17 +11,24 @@ interface OrderModalProps {
   onUpdateTable: (updatedTable: Table) => void;
   onPayment?: (revenue: number, items: number) => void;
   onTransfer?: (sourceId: number, targetId: number) => void;
+  onStockUpdate?: (productId: string, qtyChange: number) => void;
+  onDebt?: (table: Table) => void;
 }
 
-export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products, onClose, onUpdateTable, onPayment, onTransfer }) => {
+export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products, onClose, onUpdateTable, onPayment, onTransfer, onStockUpdate, onDebt }) => {
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [partialAmount, setPartialAmount] = useState<string>('');
 
   // Calculate cart total
   const totalAmount = useMemo(() => {
     return table.orders.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }, [table.orders]);
+
+  const remainingAmount = useMemo(() => {
+    return totalAmount - (table.paidAmount || 0);
+  }, [totalAmount, table.paidAmount]);
 
   const totalItems = useMemo(() => {
     return table.orders.reduce((sum, item) => sum + item.quantity, 0);
@@ -36,6 +43,15 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
   }, [products, selectedCategory, searchQuery]);
 
   const handleAddItem = (product: Product) => {
+    if (product.isStocked && (product.stockQuantity || 0) <= 0) {
+        alert("Stok tükendi!");
+        return;
+    }
+
+    if (onStockUpdate && product.isStocked) {
+        onStockUpdate(product.id, -1);
+    }
+
     const existingItemIndex = table.orders.findIndex(item => item.productId === product.id);
     let newOrders = [...table.orders];
 
@@ -62,13 +78,24 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
     const existingItemIndex = table.orders.findIndex(item => item.productId === productId);
     if (existingItemIndex === -1) return;
 
+    const item = table.orders[existingItemIndex];
     let newOrders = [...table.orders];
+    let removedQty = 0;
+
     if (completely || newOrders[existingItemIndex].quantity === 1) {
+      removedQty = newOrders[existingItemIndex].quantity;
       newOrders.splice(existingItemIndex, 1);
     } else {
+      removedQty = 1;
       newOrders[existingItemIndex].quantity -= 1;
     }
     
+    // Restore stock
+    const product = products.find(p => p.id === productId);
+    if (onStockUpdate && product?.isStocked) {
+        onStockUpdate(productId, removedQty);
+    }
+
     onUpdateTable({
       ...table,
       orders: newOrders
@@ -76,19 +103,42 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
   };
 
   const handlePayment = () => {
-    if (!window.confirm(`Toplam ₺${totalAmount.toFixed(2)} ödeme alınarak masa kapatılacak. Onaylıyor musunuz?`)) return;
+    const payAmt = partialAmount ? parseFloat(partialAmount) : remainingAmount;
     
-    if (onPayment) {
-      onPayment(totalAmount, totalItems);
+    if (payAmt <= 0 || payAmt > remainingAmount + 0.01) {
+        alert("Geçersiz tutar.");
+        return;
     }
 
-    onUpdateTable({
-      ...table,
-      isOccupied: false,
-      orders: [],
-      openedAt: undefined
-    });
-    onClose();
+    const isFullPayment = payAmt >= remainingAmount - 0.01;
+
+    if (!window.confirm(`${payAmt.toFixed(2)} ₺ ödeme alınacak. Onaylıyor musunuz?`)) return;
+
+    if (onPayment) {
+      // Logic for item count isn't perfect for partial, but revenue is correct
+      onPayment(payAmt, isFullPayment ? totalItems : 0);
+    }
+
+    if (isFullPayment) {
+        onUpdateTable({
+            ...table,
+            isOccupied: false,
+            orders: [],
+            openedAt: undefined,
+            paidAmount: 0
+        });
+        onClose();
+    } else {
+        onUpdateTable({
+            ...table,
+            paidAmount: (table.paidAmount || 0) + payAmt
+        });
+        setPartialAmount('');
+    }
+  };
+
+  const handleDebt = () => {
+      if (onDebt) onDebt(table);
   };
 
   return (
@@ -151,8 +201,15 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
                   <button
                     key={product.id}
                     onClick={() => handleAddItem(product)}
-                    className="bg-white rounded-xl p-3 border border-stone-200 shadow-sm hover:shadow-md hover:border-amber-400 transition-all text-left flex flex-col h-full group"
+                    className="bg-white rounded-xl p-3 border border-stone-200 shadow-sm hover:shadow-md hover:border-amber-400 transition-all text-left flex flex-col h-full group relative"
                   >
+                    {product.isStocked && (
+                        <div className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold shadow-sm z-10 ${
+                            (product.stockQuantity || 0) > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                            {product.stockQuantity} Stok
+                        </div>
+                    )}
                     <div className="aspect-square w-full bg-stone-100 rounded-lg mb-3 overflow-hidden">
                       <img
                         src={product.image || 'https://via.placeholder.com/200'}
@@ -231,24 +288,59 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
               )}
             </div>
 
-            <div className="p-6 bg-stone-50 border-t border-stone-200">
-              <div className="flex justify-between items-center mb-6">
-                <span className="text-stone-500 font-medium">Toplam Tutar</span>
-                <span className="text-3xl font-bold text-stone-800 serif">₺{totalAmount.toFixed(2)}</span>
+            <div className="p-6 bg-stone-50 border-t border-stone-200 space-y-4">
+              <div className="space-y-2">
+                  <div className="flex justify-between items-center text-stone-500">
+                    <span className="text-sm">Toplam</span>
+                    <span className="font-bold">₺{totalAmount.toFixed(2)}</span>
+                  </div>
+                  {(table.paidAmount || 0) > 0 && (
+                      <div className="flex justify-between items-center text-emerald-600">
+                        <span className="text-sm">Ödenen</span>
+                        <span className="font-bold">- ₺{table.paidAmount?.toFixed(2)}</span>
+                      </div>
+                  )}
+                  <div className="flex justify-between items-center pt-2 border-t border-stone-200">
+                    <span className="text-stone-800 font-bold">Kalan</span>
+                    <span className="text-2xl font-bold text-amber-600 serif">₺{remainingAmount.toFixed(2)}</span>
+                  </div>
               </div>
 
-              <button
-                onClick={handlePayment}
-                disabled={totalAmount === 0}
-                className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-lg shadow-lg transition-all transform active:scale-95 ${
-                  totalAmount === 0
-                    ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
-                    : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-900/20'
-                }`}
-              >
-                <CreditCard size={20} />
-                Ödeme Al & Kapat
-              </button>
+              {/* Partial Pay Input */}
+              <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="Parçalı Tutar"
+                    className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm"
+                    value={partialAmount}
+                    onChange={e => setPartialAmount(e.target.value)}
+                  />
+                  <button
+                    onClick={handlePayment}
+                    className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors"
+                  >
+                    Öde
+                  </button>
+              </div>
+
+              <div className="flex gap-2">
+                  {onDebt && (
+                      <button
+                        onClick={handleDebt}
+                        className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-bold bg-stone-200 text-stone-700 hover:bg-stone-300 transition-colors"
+                      >
+                        <UserMinus size={18} />
+                        Veresiye
+                      </button>
+                  )}
+                  <button
+                    onClick={() => { setPartialAmount(''); setTimeout(handlePayment, 0); }} // Clear partial, trigger full pay logic
+                    className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-bold bg-stone-800 text-white hover:bg-stone-900 transition-colors"
+                  >
+                    <CreditCard size={18} />
+                    Hepsini Kapat
+                  </button>
+              </div>
             </div>
           </div>
         </div>

@@ -33,6 +33,28 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS debts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            total_amount REAL NOT NULL,
+            remaining_amount REAL NOT NULL,
+            items TEXT,
+            is_paid INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS debt_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            debt_id INTEGER,
+            amount REAL NOT NULL,
+            date TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(debt_id) REFERENCES debts(id)
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -139,6 +161,87 @@ def get_history_detail(id):
             "created_at": row['created_at']
         })
     return jsonify({"error": "Not found"}), 404
+
+# --- Debt API ---
+
+@app.route('/api/debts', methods=['GET'])
+def get_debts():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    # Get debts that are not fully paid or have some recent activity
+    c.execute('SELECT * FROM debts WHERE is_paid = 0 ORDER BY updated_at DESC')
+    rows = c.fetchall()
+    conn.close()
+
+    debts = []
+    for row in rows:
+        debts.append({
+            "id": row['id'],
+            "name": row['name'],
+            "total_amount": row['total_amount'],
+            "remaining_amount": row['remaining_amount'],
+            "items": json.loads(row['items']) if row['items'] else [],
+            "created_at": row['created_at'],
+            "updated_at": row['updated_at']
+        })
+    return jsonify(debts)
+
+@app.route('/api/debts', methods=['POST'])
+def create_debt():
+    data = request.json
+    name = data.get('name')
+    total_amount = data.get('total_amount')
+    items = json.dumps(data.get('items', []))
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO debts (name, total_amount, remaining_amount, items)
+        VALUES (?, ?, ?, ?)
+    ''', (name, total_amount, total_amount, items))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"success": True})
+
+@app.route('/api/debts/<int:id>/pay', methods=['POST'])
+def pay_debt(id):
+    data = request.json
+    amount = float(data.get('amount'))
+    date_str = datetime.now().strftime('%Y-%m-%d')
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    # Get current debt
+    c.execute('SELECT remaining_amount FROM debts WHERE id = ?', (id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Debt not found"}), 404
+
+    current_remaining = row[0]
+    new_remaining = max(0, current_remaining - amount)
+    is_paid = 1 if new_remaining <= 0 else 0
+
+    # Update debt
+    c.execute('''
+        UPDATE debts
+        SET remaining_amount = ?, is_paid = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    ''', (new_remaining, is_paid, id))
+
+    # Record payment
+    c.execute('''
+        INSERT INTO debt_payments (debt_id, amount, date)
+        VALUES (?, ?, ?)
+    ''', (id, amount, date_str))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"success": True, "remaining": new_remaining})
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

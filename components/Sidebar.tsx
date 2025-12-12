@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Coffee, BookOpen, Settings, Archive } from 'lucide-react';
+import { LayoutDashboard, Coffee, BookOpen, Archive, FileText } from 'lucide-react';
 import { Page } from '../types';
 
 interface SidebarProps {
@@ -12,8 +12,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setPage }) => {
     { id: 'dashboard', label: 'Özet', icon: <LayoutDashboard size={22} /> },
     { id: 'pos', label: 'Masalar & Sipariş', icon: <Coffee size={22} /> },
     { id: 'menu', label: 'Menü Yönetimi', icon: <BookOpen size={22} /> },
+    { id: 'debt', label: 'Borç Listesi', icon: <FileText size={22} /> },
     { id: 'admin', label: 'Yönetim Paneli', icon: <Archive size={22} /> },
-    // { id: 'settings', label: 'Ayarlar', icon: <Settings size={22} /> },
   ] as const;
 
   return (

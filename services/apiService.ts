@@ -1,4 +1,4 @@
-import { Table, Product } from '../types';
+import { Table, Product, CartItem, Debt } from '../types';
 
 const API_BASE = '/api'; // In production (Flask serving), this works. In Dev, Vite proxies it.
 
@@ -41,6 +41,32 @@ export const ApiService = {
   async getHistoryDetail(id: number): Promise<DailySales> {
     const response = await fetch(`${API_BASE}/history/${id}`);
     if (!response.ok) throw new Error('Detay verisi alınamadı.');
+    return response.json();
+  },
+
+  async getDebts(): Promise<Debt[]> {
+    const response = await fetch(`${API_BASE}/debts`);
+    if (!response.ok) throw new Error('Borç listesi alınamadı.');
+    return response.json();
+  },
+
+  async createDebt(name: string, total_amount: number, items: CartItem[]) {
+    const response = await fetch(`${API_BASE}/debts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, total_amount, items })
+    });
+    if (!response.ok) throw new Error('Borç kaydı oluşturulamadı.');
+    return response.json();
+  },
+
+  async payDebt(id: number, amount: number) {
+    const response = await fetch(`${API_BASE}/debts/${id}/pay`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount })
+    });
+    if (!response.ok) throw new Error('Ödeme kaydedilemedi.');
     return response.json();
   }
 };

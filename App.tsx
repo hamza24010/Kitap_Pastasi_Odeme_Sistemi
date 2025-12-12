@@ -5,8 +5,10 @@ import { OrderModal } from './components/OrderModal';
 import { MenuManagement } from './components/MenuManagement';
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
+import { DebtList } from './components/DebtList'; // Will create this next
 import { StorageService, DailyStats } from './services/storageService';
-import { Page, Table, Product } from './types';
+import { ApiService } from './services/apiService';
+import { Page, Table, Product, CartItem } from './types';
 import { INITIAL_TABLES } from './constants';
 
 function App() {
@@ -60,6 +62,15 @@ function App() {
     }
   };
 
+  const handleStockUpdate = (productId: string, quantityChange: number) => {
+    setProducts(prevProducts => prevProducts.map(p => {
+        if (p.id === productId && p.isStocked) {
+            return { ...p, stockQuantity: (p.stockQuantity || 0) + quantityChange };
+        }
+        return p;
+    }));
+  };
+
   const handlePayment = (revenue: number, items: number) => {
     setDailyStats(prev => ({
       revenue: prev.revenue + revenue,
@@ -72,7 +83,6 @@ function App() {
   };
 
   const handleClearTables = () => {
-    // Reset daily stats and tables
     const resetTables = tables
       .filter(t => t.type === 'table')
       .map(t => ({
@@ -148,20 +158,42 @@ function App() {
         openedAt: undefined
     };
 
-    // Update state
     setTables(prev => prev.map(t => {
         if (t.id === targetId) return updatedTarget;
         if (t.id === sourceId) return updatedSource;
         return t;
     }));
 
-    // If source was a person, they might need to be removed if empty
     if (updatedSource.type === 'person') {
          setTables(prev => prev.filter(t => t.id !== updatedSource.id));
     }
 
-    // Close source modal
     setSelectedTableId(null);
+  };
+
+  const handleDebtCreation = async (table: Table) => {
+    if (!table.orders.length) return;
+
+    try {
+        const total = table.orders.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const name = table.name;
+
+        await ApiService.createDebt(name, total, table.orders);
+        alert("Borç kaydı oluşturuldu.");
+
+        // Clear table (and remove if person)
+        handleUpdateTable({
+            ...table,
+            isOccupied: false,
+            orders: [],
+            openedAt: undefined
+        });
+        setSelectedTableId(null);
+
+    } catch (error) {
+        console.error(error);
+        alert("Borç kaydı oluşturulurken hata oluştu!");
+    }
   };
 
   const selectedTable = tables.find(t => t.id === selectedTableId);
@@ -196,6 +228,10 @@ function App() {
         {activePage === 'admin' && (
           <AdminPanel />
         )}
+
+        {activePage === 'debt' && (
+          <DebtList onPayment={handlePayment} />
+        )}
       </main>
 
       {/* Modals */}
@@ -208,6 +244,8 @@ function App() {
           onUpdateTable={handleUpdateTable}
           onPayment={handlePayment}
           onTransfer={handleTransferTable}
+          onStockUpdate={handleStockUpdate}
+          onDebt={handleDebtCreation}
         />
       )}
     </div>
