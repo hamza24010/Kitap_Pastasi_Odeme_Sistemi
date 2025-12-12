@@ -22,12 +22,17 @@ export interface CartItem {
   quantity: number;
 }
 
+export type TableSection = 'indoor' | 'outdoor';
+export type TableType = 'table' | 'person';
+
 export interface Table {
   id: number;
   name: string;
   isOccupied: boolean;
   orders: CartItem[];
   openedAt?: string; // ISO Date string
+  section?: TableSection;
+  type?: TableType;
 }
 
 export type Page = 'dashboard' | 'pos' | 'menu' | 'settings' | 'admin';
