@@ -2,15 +2,25 @@ import webview
 import threading
 import socket
 import sys
+import os
 
-# Import the Flask app from backend.py
-# If running as script, python_app directory is in path or we are inside it.
+# Ensure the backend can be imported
+# If frozen, PyInstaller should have included it.
+# If running as source, we might need to add path.
+if not getattr(sys, 'frozen', False):
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.append(current_dir)
+
 try:
     from backend import app
-except ImportError:
-    # If main.py is run from root (e.g. python python_app/main.py)
-    sys.path.append('python_app')
-    from backend import app
+except ImportError as e:
+    # If this fails in the frozen app, we want to show a visible error
+    import tkinter as tk
+    from tkinter import messagebox
+    root = tk.Tk()
+    root.withdraw()
+    messagebox.showerror("Kritik Hata", f"Backend modülü yüklenemedi!\n\n{str(e)}")
+    sys.exit(1)
 
 def get_free_port():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

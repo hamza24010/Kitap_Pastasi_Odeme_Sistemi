@@ -51,10 +51,14 @@ def main():
     # Check OS to determine separator
     sep = ';' if os.name == 'nt' else ':'
 
+    # We add --paths python_app to help PyInstaller find backend.py
+    # We add --hidden-import backend to explicitly tell it to include it
     cmd = (
         f'pyinstaller --noconfirm --onefile --windowed '
         f'--name "KitapPastasiPOS" '
         f'--add-data "dist{sep}dist" '
+        f'--paths python_app '
+        f'--hidden-import backend '
         f'python_app/main.py'
     )
 
