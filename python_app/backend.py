@@ -10,7 +10,16 @@ from flask_cors import CORS
 if getattr(sys, 'frozen', False):
     BASE_DIR = sys._MEIPASS
     DIST_DIR = os.path.join(BASE_DIR, 'dist')
-    DB_PATH = os.path.join(os.path.dirname(sys.executable), 'kitap_pastasi.db')
+    # Use APPDATA for database to allow writing when installed in Program Files
+    APP_DATA_DIR = os.path.join(os.environ['APPDATA'], 'KitapPastasiPOS')
+    if not os.path.exists(APP_DATA_DIR):
+        try:
+            os.makedirs(APP_DATA_DIR)
+        except OSError:
+            # Fallback to local if permission denied (unlikely in APPDATA)
+            APP_DATA_DIR = os.path.dirname(sys.executable)
+
+    DB_PATH = os.path.join(APP_DATA_DIR, 'kitap_pastasi.db')
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DIST_DIR = os.path.join(BASE_DIR, '..', 'dist')
