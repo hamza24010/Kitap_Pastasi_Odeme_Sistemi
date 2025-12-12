@@ -116,6 +116,54 @@ function App() {
     setTables(prev => [...prev, newTable]);
   };
 
+  const handleTransferTable = (sourceId: number, targetId: number) => {
+    const sourceTable = tables.find(t => t.id === sourceId);
+    const targetTable = tables.find(t => t.id === targetId);
+
+    if (!sourceTable || !targetTable) return;
+
+    // Merge orders
+    const mergedOrders = [...targetTable.orders];
+
+    sourceTable.orders.forEach(sourceItem => {
+        const existingItemIndex = mergedOrders.findIndex(i => i.productId === sourceItem.productId);
+        if (existingItemIndex > -1) {
+            mergedOrders[existingItemIndex].quantity += sourceItem.quantity;
+        } else {
+            mergedOrders.push({ ...sourceItem });
+        }
+    });
+
+    const updatedTarget: Table = {
+        ...targetTable,
+        orders: mergedOrders,
+        isOccupied: true,
+        openedAt: targetTable.isOccupied ? targetTable.openedAt : new Date().toISOString()
+    };
+
+    const updatedSource: Table = {
+        ...sourceTable,
+        orders: [],
+        isOccupied: false,
+        openedAt: undefined
+    };
+
+    // Update state
+    setTables(prev => prev.map(t => {
+        if (t.id === targetId) return updatedTarget;
+        if (t.id === sourceId) return updatedSource;
+        return t;
+    }));
+
+    // If source was a person, they might need to be removed if empty
+    if (updatedSource.type === 'person') {
+         setTables(prev => prev.filter(t => t.id !== updatedSource.id));
+    }
+
+    // Close source modal
+    setSelectedTableId(null);
+  };
+
   const selectedTable = tables.find(t => t.id === selectedTableId);
 
   return (
@@ -154,10 +202,12 @@ function App() {
       {selectedTable && (
         <OrderModal
           table={selectedTable}
+          tables={tables}
           products={products}
           onClose={() => setSelectedTableId(null)}
           onUpdateTable={handleUpdateTable}
           onPayment={handlePayment}
+          onTransfer={handleTransferTable}
         />
       )}
     </div>
