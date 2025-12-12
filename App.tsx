@@ -5,7 +5,7 @@ import { OrderModal } from './components/OrderModal';
 import { MenuManagement } from './components/MenuManagement';
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
-import { StorageService } from './services/storageService';
+import { StorageService, DailyStats } from './services/storageService';
 import { Page, Table, Product } from './types';
 import { INITIAL_TABLES } from './constants';
 
@@ -13,13 +13,14 @@ function App() {
   const [activePage, setActivePage] = useState<Page>('pos');
   const [tables, setTables] = useState<Table[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [dailyStats, setDailyStats] = useState<DailyStats>({ revenue: 0, items: 0 });
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
 
   // Load initial data
   useEffect(() => {
     let loadedTables = StorageService.getTables();
 
-    // Migration logic: Ensure all tables have a section and type if loaded from old storage
+    // Migration logic
     if (loadedTables.length > 0) {
       const needsMigration = loadedTables.some(t => !t.type || !t.section);
       if (needsMigration) {
@@ -35,9 +36,10 @@ function App() {
 
     setTables(loadedTables);
     setProducts(StorageService.getProducts());
+    setDailyStats(StorageService.getDailyStats());
   }, []);
 
-  // Sync with storage whenever data changes
+  // Sync with storage
   useEffect(() => {
     if (tables.length > 0) StorageService.saveTables(tables);
   }, [tables]);
@@ -46,14 +48,23 @@ function App() {
     if (products.length > 0) StorageService.saveProducts(products);
   }, [products]);
 
+  useEffect(() => {
+    StorageService.saveDailyStats(dailyStats);
+  }, [dailyStats]);
+
   const handleUpdateTable = (updatedTable: Table) => {
-    // If a 'person' table is closed (paid/empty), remove it from the list
     if (updatedTable.type === 'person' && !updatedTable.isOccupied) {
       setTables(prev => prev.filter(t => t.id !== updatedTable.id));
-      // Also close modal if it was open (though modal calls this, so it closes itself usually)
     } else {
       setTables(prev => prev.map(t => t.id === updatedTable.id ? updatedTable : t));
     }
+  };
+
+  const handlePayment = (revenue: number, items: number) => {
+    setDailyStats(prev => ({
+      revenue: prev.revenue + revenue,
+      items: prev.items + items
+    }));
   };
 
   const handleUpdateProducts = (updatedProducts: Product[]) => {
@@ -61,9 +72,7 @@ function App() {
   };
 
   const handleClearTables = () => {
-    // Reset tables for next day
-    // For regular tables: reset status
-    // For person tables: remove them entirely
+    // Reset daily stats and tables
     const resetTables = tables
       .filter(t => t.type === 'table')
       .map(t => ({
@@ -74,7 +83,10 @@ function App() {
       }));
 
     setTables(resetTables);
+    setDailyStats({ revenue: 0, items: 0 });
+
     StorageService.saveTables(resetTables);
+    StorageService.saveDailyStats({ revenue: 0, items: 0 });
   };
 
   const handleAddPerson = (name: string) => {
@@ -82,13 +94,13 @@ function App() {
     const newPersonTable: Table = {
       id: newId,
       name: name,
-      isOccupied: true, // Auto-occupy to start ordering immediately? Or false. Let's say true so it's "active".
+      isOccupied: true,
       orders: [],
       type: 'person',
-      openedAt: new Date().toISOString() // Mark as opened
+      openedAt: new Date().toISOString()
     };
     setTables(prev => [...prev, newPersonTable]);
-    setSelectedTableId(newId); // Auto-open the modal
+    setSelectedTableId(newId);
   };
 
   const selectedTable = tables.find(t => t.id === selectedTableId);
@@ -102,6 +114,7 @@ function App() {
           <Dashboard
             tables={tables}
             products={products}
+            dailyStats={dailyStats}
             onEndDay={handleClearTables}
           />
         )}
@@ -130,6 +143,7 @@ function App() {
           products={products}
           onClose={() => setSelectedTableId(null)}
           onUpdateTable={handleUpdateTable}
+          onPayment={handlePayment}
         />
       )}
     </div>

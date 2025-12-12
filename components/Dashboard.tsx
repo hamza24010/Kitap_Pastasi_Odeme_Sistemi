@@ -2,15 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Product, Table } from '../types';
 import { GeminiService } from '../services/geminiService';
 import { ApiService } from '../services/apiService';
-import { TrendingUp, Users, DollarSign, Sparkles, Save } from 'lucide-react';
+import { DailyStats } from '../services/storageService';
+import { TrendingUp, Users, DollarSign, Sparkles, Save, Wallet } from 'lucide-react';
 
 interface DashboardProps {
   tables: Table[];
   products: Product[];
+  dailyStats: DailyStats;
   onEndDay: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ tables, products, onEndDay }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ tables, products, dailyStats, onEndDay }) => {
   const [dailyPairing, setDailyPairing] = useState<{title: string, text: string} | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -19,6 +21,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ tables, products, onEndDay
   const activeRevenue = tables.reduce((total, table) => {
     return total + table.orders.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }, 0);
+
+  const totalRevenue = activeRevenue + dailyStats.revenue;
+  const totalItems = tables.reduce((acc, t) => acc + t.orders.length, 0) + dailyStats.items; // This is a bit rough, logic-wise active items + past items
 
   useEffect(() => {
     const fetchPairing = async () => {
@@ -37,7 +42,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ tables, products, onEndDay
 
     setIsProcessing(true);
     try {
-        await ApiService.endOfDay(tables, products);
+        // Pass total combined revenue and active tables for context
+        await ApiService.endOfDay(tables, products, totalRevenue, totalItems);
         alert("Gün sonu başarıyla tamamlandı.");
         onEndDay();
     } catch (error) {
@@ -66,14 +72,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ tables, products, onEndDay
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center gap-4">
           <div className="bg-emerald-100 p-4 rounded-full text-emerald-600">
             <DollarSign size={28} />
           </div>
           <div>
-            <p className="text-stone-500 text-sm font-medium">Anlık Ciro (Açık Masalar)</p>
-            <p className="text-3xl font-bold text-stone-800">₺{activeRevenue.toFixed(2)}</p>
+            <p className="text-stone-500 text-sm font-medium">Anlık Ciro (Açık)</p>
+            <p className="text-2xl font-bold text-stone-800">₺{activeRevenue.toFixed(2)}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 flex items-center gap-4">
+          <div className="bg-violet-100 p-4 rounded-full text-violet-600">
+            <Wallet size={28} />
+          </div>
+          <div>
+            <p className="text-stone-500 text-sm font-medium">Kasadaki Para</p>
+            <p className="text-2xl font-bold text-stone-800">₺{dailyStats.revenue.toFixed(2)}</p>
           </div>
         </div>
 
@@ -83,7 +99,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ tables, products, onEndDay
           </div>
           <div>
             <p className="text-stone-500 text-sm font-medium">Doluluk Oranı</p>
-            <p className="text-3xl font-bold text-stone-800">{occupiedTables} / {tables.length}</p>
+            <p className="text-2xl font-bold text-stone-800">{occupiedTables} / {tables.length}</p>
           </div>
         </div>
 
@@ -92,9 +108,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ tables, products, onEndDay
             <TrendingUp size={28} />
           </div>
           <div>
-            <p className="text-stone-500 text-sm font-medium">Aktif Sipariş Kalemi</p>
-            <p className="text-3xl font-bold text-stone-800">
-              {tables.reduce((acc, t) => acc + t.orders.length, 0)}
+            <p className="text-stone-500 text-sm font-medium">Toplam Ürün</p>
+            <p className="text-2xl font-bold text-stone-800">
+              {totalItems}
             </p>
           </div>
         </div>

@@ -15,13 +15,18 @@ export interface DailySales {
 }
 
 export const ApiService = {
-  async endOfDay(tables: Table[], products: Product[]) {
+  async endOfDay(tables: Table[], products: Product[], total_revenue: number, total_items: number) {
     const response = await fetch(`${API_BASE}/end-of-day`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ tables, products }),
+      body: JSON.stringify({
+        tables,
+        products,
+        total_revenue,
+        total_items
+      }),
     });
     if (!response.ok) throw new Error('Gün sonu işlemi başarısız oldu.');
     return response.json();

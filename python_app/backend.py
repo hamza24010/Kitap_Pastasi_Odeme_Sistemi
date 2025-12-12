@@ -57,21 +57,22 @@ def serve_static(path):
 @app.route('/api/end-of-day', methods=['POST'])
 def end_of_day():
     data = request.json
-    # Expected: { tables: [...], products: [...] } or calculated totals
-    # Let's expect the frontend to send the summary or full data
 
     date_str = datetime.now().strftime('%Y-%m-%d')
 
-    tables = data.get('tables', [])
+    # Try to get pre-calculated totals from frontend
+    total_revenue = data.get('total_revenue')
+    total_items = data.get('total_items')
 
-    # Calculate totals
-    total_revenue = 0
-    total_items = 0
-
-    for table in tables:
-        for item in table.get('orders', []):
-            total_revenue += item.get('price', 0) * item.get('quantity', 0)
-            total_items += item.get('quantity', 0)
+    # If not provided, fallback to calculating from active tables (old behavior)
+    if total_revenue is None or total_items is None:
+        total_revenue = 0
+        total_items = 0
+        tables = data.get('tables', [])
+        for table in tables:
+            for item in table.get('orders', []):
+                total_revenue += item.get('price', 0) * item.get('quantity', 0)
+                total_items += item.get('quantity', 0)
 
     details_json = json.dumps(data)
 
@@ -115,7 +116,6 @@ def get_history():
             "total_revenue": row['total_revenue'],
             "total_items": row['total_items'],
             "created_at": row['created_at']
-            # We don't send details unless requested to keep it light
         })
 
     return jsonify(history)

@@ -7,15 +7,20 @@ interface OrderModalProps {
   products: Product[];
   onClose: () => void;
   onUpdateTable: (updatedTable: Table) => void;
+  onPayment?: (revenue: number, items: number) => void;
 }
 
-export const OrderModal: React.FC<OrderModalProps> = ({ table, products, onClose, onUpdateTable }) => {
+export const OrderModal: React.FC<OrderModalProps> = ({ table, products, onClose, onUpdateTable, onPayment }) => {
   const [selectedCategory, setSelectedCategory] = useState<Category | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Calculate cart total
   const totalAmount = useMemo(() => {
     return table.orders.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  }, [table.orders]);
+
+  const totalItems = useMemo(() => {
+    return table.orders.reduce((sum, item) => sum + item.quantity, 0);
   }, [table.orders]);
 
   const filteredProducts = useMemo(() => {
@@ -69,6 +74,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, products, onClose
   const handlePayment = () => {
     if (!window.confirm(`Toplam ₺${totalAmount.toFixed(2)} ödeme alınarak masa kapatılacak. Onaylıyor musunuz?`)) return;
     
+    if (onPayment) {
+      onPayment(totalAmount, totalItems);
+    }
+
     onUpdateTable({
       ...table,
       isOccupied: false,
