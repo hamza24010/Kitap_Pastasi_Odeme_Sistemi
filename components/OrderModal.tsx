@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Table, Product, Category } from '../types';
+import { Table, Product, Category, CartItem } from '../types';
 import { TransferModal } from './TransferModal';
-import { X, Plus, Minus, Trash2, CreditCard, Search, BookOpen, ArrowRightLeft, UserMinus, Package } from 'lucide-react';
+import { X, Plus, Minus, Trash2, CreditCard, Search, BookOpen, ArrowRightLeft, UserMinus, Package, CheckSquare, Square } from 'lucide-react';
 
 interface OrderModalProps {
   table: Table;
@@ -20,6 +20,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
   const [searchQuery, setSearchQuery] = useState('');
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [partialAmount, setPartialAmount] = useState<string>('');
+
+  // Selection state for partial item payment
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
 
   // Calculate cart total
   const totalAmount = useMemo(() => {
@@ -41,6 +44,16 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
       return matchesCategory && matchesSearch;
     });
   }, [products, selectedCategory, searchQuery]);
+
+  // Calculate total of selected items
+  const selectedItemsTotal = useMemo(() => {
+    let total = 0;
+    selectedItemIds.forEach(id => {
+      const item = table.orders.find(i => i.productId === id);
+      if (item) total += item.price * item.quantity;
+    });
+    return total;
+  }, [selectedItemIds, table.orders]);
 
   const handleAddItem = (product: Product) => {
     if (product.isStocked && (product.stockQuantity || 0) <= 0) {
@@ -78,13 +91,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
     const existingItemIndex = table.orders.findIndex(item => item.productId === productId);
     if (existingItemIndex === -1) return;
 
-    const item = table.orders[existingItemIndex];
     let newOrders = [...table.orders];
     let removedQty = 0;
 
     if (completely || newOrders[existingItemIndex].quantity === 1) {
       removedQty = newOrders[existingItemIndex].quantity;
       newOrders.splice(existingItemIndex, 1);
+      // Remove from selection if exists
+      if (selectedItemIds.has(productId)) {
+        const newSet = new Set(selectedItemIds);
+        newSet.delete(productId);
+        setSelectedItemIds(newSet);
+      }
     } else {
       removedQty = 1;
       newOrders[existingItemIndex].quantity -= 1;
@@ -102,8 +120,36 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
     });
   };
 
+  const toggleItemSelection = (productId: string) => {
+    const newSet = new Set(selectedItemIds);
+    if (newSet.has(productId)) {
+      newSet.delete(productId);
+    } else {
+      newSet.add(productId);
+    }
+    setSelectedItemIds(newSet);
+    // Clear partial amount manual input if selecting items
+    setPartialAmount('');
+  };
+
   const handlePayment = () => {
-    const payAmt = partialAmount ? parseFloat(partialAmount) : remainingAmount;
+    let payAmt = 0;
+    let itemsToPayCount = 0;
+
+    // Determine payment mode: Selected Items vs Manual Amount vs Full Remaining
+    if (selectedItemIds.size > 0) {
+      payAmt = selectedItemsTotal;
+      // Count items logic approximation
+      selectedItemIds.forEach(id => {
+          const item = table.orders.find(i => i.productId === id);
+          if (item) itemsToPayCount += item.quantity;
+      });
+    } else if (partialAmount) {
+      payAmt = parseFloat(partialAmount);
+    } else {
+      payAmt = remainingAmount;
+      itemsToPayCount = totalItems;
+    }
     
     if (payAmt <= 0 || payAmt > remainingAmount + 0.01) {
         alert("Geçersiz tutar.");
@@ -115,8 +161,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
     if (!window.confirm(`${payAmt.toFixed(2)} ₺ ödeme alınacak. Onaylıyor musunuz?`)) return;
 
     if (onPayment) {
-      // Logic for item count isn't perfect for partial, but revenue is correct
-      onPayment(payAmt, isFullPayment ? totalItems : 0);
+      onPayment(payAmt, itemsToPayCount || 0); // items count is 0 if manual amount entered, acceptable trade-off
     }
 
     if (isFullPayment) {
@@ -129,10 +174,31 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
         });
         onClose();
     } else {
-        onUpdateTable({
-            ...table,
-            paidAmount: (table.paidAmount || 0) + payAmt
-        });
+        // If paid by selected items, remove those items from the order list?
+        // OR just keep them and increase paidAmount?
+        // Usually, if I pay for specific items, those items are "closed".
+        // Removing them is better UX for "splitting items".
+        let updatedOrders = [...table.orders];
+        if (selectedItemIds.size > 0) {
+           updatedOrders = updatedOrders.filter(item => !selectedItemIds.has(item.productId));
+           // Reset paidAmount if we remove items, because paidAmount tracks *remaining* debt usually?
+           // No, `paidAmount` tracks money put on the table against the *total* order.
+           // If we remove items, total order value drops.
+           // Strategy: Reduce paidAmount? No.
+           // Strategy: Treat "Pay Selected" as removing items from the bill entirely (they are paid and gone).
+           // So we don't increase `paidAmount`, we just remove the items.
+           onUpdateTable({
+               ...table,
+               orders: updatedOrders
+           });
+           setSelectedItemIds(new Set());
+        } else {
+           // Manual amount payment -> Increase paidAmount
+           onUpdateTable({
+               ...table,
+               paidAmount: (table.paidAmount || 0) + payAmt
+           });
+        }
         setPartialAmount('');
     }
   };
@@ -257,12 +323,27 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
                 </div>
               ) : (
                 table.orders.map((item) => (
-                  <div key={item.productId} className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-100">
+                  <div
+                    key={item.productId}
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-colors cursor-pointer ${
+                        selectedItemIds.has(item.productId)
+                        ? 'bg-amber-50 border-amber-500'
+                        : 'bg-stone-50 border-stone-100'
+                    }`}
+                    onClick={() => toggleItemSelection(item.productId)}
+                  >
+                    <div className="mr-3">
+                        {selectedItemIds.has(item.productId) ? (
+                            <CheckSquare size={20} className="text-amber-600" />
+                        ) : (
+                            <Square size={20} className="text-stone-300" />
+                        )}
+                    </div>
                     <div className="flex-1">
                       <p className="font-medium text-stone-800">{item.productName}</p>
                       <p className="text-sm text-amber-600 font-semibold">₺{(item.price * item.quantity).toFixed(2)}</p>
                     </div>
-                    <div className="flex items-center gap-3 bg-white px-2 py-1 rounded-lg border border-stone-200 shadow-sm">
+                    <div className="flex items-center gap-3 bg-white px-2 py-1 rounded-lg border border-stone-200 shadow-sm" onClick={e => e.stopPropagation()}>
                       <button
                         onClick={() => handleRemoveItem(item.productId)}
                         className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-red-500 transition-colors"
@@ -278,7 +359,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
                       </button>
                     </div>
                     <button 
-                      onClick={() => handleRemoveItem(item.productId, true)}
+                      onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.productId, true); }}
                       className="ml-3 text-stone-400 hover:text-red-500 transition-colors"
                     >
                       <Trash2 size={16} />
@@ -307,24 +388,27 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
               </div>
 
               {/* Partial Pay Input */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                   <input
                     type="number"
-                    placeholder="Parçalı Tutar"
+                    placeholder="Tutar girin"
                     className="flex-1 px-3 py-2 border border-stone-300 rounded-lg text-sm"
-                    value={partialAmount}
-                    onChange={e => setPartialAmount(e.target.value)}
+                    value={selectedItemIds.size > 0 ? selectedItemsTotal.toFixed(2) : partialAmount}
+                    onChange={e => {
+                        if(selectedItemIds.size === 0) setPartialAmount(e.target.value);
+                    }}
+                    disabled={selectedItemIds.size > 0}
                   />
                   <button
                     onClick={handlePayment}
                     className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors"
                   >
-                    Öde
+                    {selectedItemIds.size > 0 ? 'Seçileni Öde' : (partialAmount ? 'Tutarı Öde' : 'Hepsini Öde')}
                   </button>
               </div>
 
               <div className="flex gap-2">
-                  {onDebt && (
+                  {onDebt && table.type === 'person' && (
                       <button
                         onClick={handleDebt}
                         className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-bold bg-stone-200 text-stone-700 hover:bg-stone-300 transition-colors"
@@ -333,13 +417,6 @@ export const OrderModal: React.FC<OrderModalProps> = ({ table, tables, products,
                         Veresiye
                       </button>
                   )}
-                  <button
-                    onClick={() => { setPartialAmount(''); setTimeout(handlePayment, 0); }} // Clear partial, trigger full pay logic
-                    className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-bold bg-stone-800 text-white hover:bg-stone-900 transition-colors"
-                  >
-                    <CreditCard size={18} />
-                    Hepsini Kapat
-                  </button>
               </div>
             </div>
           </div>

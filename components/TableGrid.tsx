@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { Table, TableType } from '../types';
-import { Users, Coffee, Plus, User } from 'lucide-react';
+import { Users, Coffee, Plus, User, Edit2, Trash2 } from 'lucide-react';
 
 interface TableGridProps {
   tables: Table[];
   onSelectTable: (tableId: number) => void;
   onAddPerson?: (name: string) => void;
   onAddTable?: (name: string, section: 'indoor' | 'outdoor') => void;
+  onRenameTable?: (tableId: number, newName: string) => void;
+  onRemoveTable?: (tableId: number) => void;
 }
 
-export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onAddPerson, onAddTable }) => {
+export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onAddPerson, onAddTable, onRenameTable, onRemoveTable }) => {
   const [activeTab, setActiveTab] = useState<'indoor' | 'outdoor' | 'person'>('indoor');
 
   const filteredTables = tables.filter(t => {
@@ -29,6 +31,25 @@ export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onA
     const name = prompt(`${activeTab === 'indoor' ? 'İç Mekan' : 'Dış Mekan'} için Masa Adı/No Giriniz:`);
     if (name && onAddTable) {
       onAddTable(name, activeTab);
+    }
+  };
+
+  const handleRename = (e: React.MouseEvent, table: Table) => {
+    e.stopPropagation();
+    const newName = prompt("Yeni isim giriniz:", table.name);
+    if (newName && newName !== table.name && onRenameTable) {
+      onRenameTable(table.id, newName);
+    }
+  };
+
+  const handleRemove = (e: React.MouseEvent, table: Table) => {
+    e.stopPropagation();
+    if (table.isOccupied) {
+      alert("Dolu masa silinemez! Önce hesabı kapatın veya taşıyın.");
+      return;
+    }
+    if (confirm(`"${table.name}" silinecek. Emin misiniz?`) && onRemoveTable) {
+      onRemoveTable(table.id);
     }
   };
 
@@ -92,15 +113,25 @@ export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onA
             const totalAmount = table.orders.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
             return (
-              <button
+              <div
                 key={table.id}
                 onClick={() => onSelectTable(table.id)}
-                className={`relative h-48 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 transform hover:scale-105 hover:shadow-xl border-2 ${
+                className={`relative h-48 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 transform hover:scale-105 hover:shadow-xl border-2 cursor-pointer group ${
                   table.isOccupied
                     ? 'bg-white border-amber-500 shadow-md'
                     : 'bg-stone-50 border-dashed border-stone-300 text-stone-400 hover:bg-white hover:border-stone-400'
                 }`}
               >
+                {/* Hover Actions */}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <button onClick={(e) => handleRename(e, table)} className="p-1.5 bg-stone-100 rounded-lg hover:bg-stone-200 text-stone-600" title="İsim Değiştir">
+                    <Edit2 size={14} />
+                  </button>
+                  <button onClick={(e) => handleRemove(e, table)} className="p-1.5 bg-red-50 rounded-lg hover:bg-red-100 text-red-500" title="Sil">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
                 <div className="flex justify-between items-start w-full">
                   <span className={`text-xl font-bold serif truncate pr-2 ${table.isOccupied ? 'text-stone-800' : 'text-stone-400'}`}>
                     {table.name}
@@ -137,7 +168,7 @@ export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onA
                     </div>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

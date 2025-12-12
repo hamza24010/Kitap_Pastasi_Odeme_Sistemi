@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Product, Table } from '../types';
-import { GeminiService } from '../services/geminiService';
 import { ApiService } from '../services/apiService';
 import { DailyStats } from '../services/storageService';
-import { TrendingUp, Users, DollarSign, Sparkles, Save, Wallet } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, Sparkles, Save, Wallet, Quote } from 'lucide-react';
 
 interface DashboardProps {
   tables: Table[];
@@ -12,8 +11,31 @@ interface DashboardProps {
   onEndDay: () => void;
 }
 
+const PROVERBS = [
+  "Aklın varsa kendine sakla.",
+  "Akıllı düşman, akılsız dosttan iyidir.",
+  "Atına bakan, ardına bakmaz.",
+  "Bilen söylemez, söyleyen bilmez.",
+  "Bir elin nesi var, iki elin sesi var.",
+  "Canı yanan eşek, attan hızlı koşar.",
+  "Çok söz yalansız, çok mal haramsız olmaz.",
+  "Danışan dağları aşmış, danışmayan düz yolda şaşmış.",
+  "El elden üstündür.",
+  "Gönül kimi severse güzel odur.",
+  "Misafir kısmetiyle gelir.",
+  "Ne ekersen onu biçersin.",
+  "Rüzgar eken fırtına biçer.",
+  "Sabır acıdır, meyvesi tatlıdır.",
+  "Su akar yatağını bulur.",
+  "Tatlı dil yılanı deliğinden çıkarır.",
+  "Vakit nakittir.",
+  "Yalnız taş duvar olmaz.",
+  "Zararın neresinden dönülse kârdır.",
+  "İyi dost kara günde belli olur."
+];
+
 export const Dashboard: React.FC<DashboardProps> = ({ tables, products, dailyStats, onEndDay }) => {
-  const [dailyPairing, setDailyPairing] = useState<{title: string, text: string} | null>(null);
+  const [currentProverb, setCurrentProverb] = useState<string>(PROVERBS[0]);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const occupiedTables = tables.filter(t => t.isOccupied).length;
@@ -23,17 +45,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ tables, products, dailySta
   }, 0);
 
   const totalRevenue = activeRevenue + dailyStats.revenue;
-  const totalItems = tables.reduce((acc, t) => acc + t.orders.length, 0) + dailyStats.items; // This is a bit rough, logic-wise active items + past items
+  const totalItems = tables.reduce((acc, t) => acc + t.orders.length, 0) + dailyStats.items;
 
   useEffect(() => {
-    const fetchPairing = async () => {
-      const result = await GeminiService.generateDailyPairing(products);
-      setDailyPairing(result);
-    };
-    if (products.length > 0) {
-      fetchPairing();
-    }
-  }, []); // Only run once on mount
+    // Initial random proverb
+    setCurrentProverb(PROVERBS[Math.floor(Math.random() * PROVERBS.length)]);
+
+    const interval = setInterval(() => {
+        setCurrentProverb(PROVERBS[Math.floor(Math.random() * PROVERBS.length)]);
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleEndDay = async () => {
     if (!confirm("Gün sonu işlemi yapmak üzeresiniz. Bu işlem tüm masaları sıfırlayacak ve güncel ciroyu veritabanına kaydedecektir. Emin misiniz?")) {
@@ -42,7 +65,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ tables, products, dailySta
 
     setIsProcessing(true);
     try {
-        // Pass total combined revenue and active tables for context
         await ApiService.endOfDay(tables, products, totalRevenue, totalItems);
         alert("Gün sonu başarıyla tamamlandı.");
         onEndDay();
@@ -59,7 +81,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ tables, products, dailySta
       <div className="flex justify-between items-center mb-8">
         <div>
             <h2 className="text-3xl font-bold text-stone-800 mb-2 serif">Özet Rapor</h2>
-            <p className="text-stone-500">Günlük işletme istatistikleri ve öneriler</p>
+            <p className="text-stone-500">Günlük işletme istatistikleri</p>
         </div>
         <button
             onClick={handleEndDay}
@@ -116,33 +138,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ tables, products, dailySta
         </div>
       </div>
 
-      {/* AI Content */}
+      {/* Circassian Proverbs Section */}
       <div className="bg-gradient-to-br from-stone-800 to-stone-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 p-8 opacity-10">
-          <Sparkles size={200} />
+          <Quote size={200} />
         </div>
         
         <div className="relative z-10 max-w-2xl">
           <div className="flex items-center gap-2 text-amber-400 mb-4">
-            <Sparkles size={20} />
-            <span className="font-bold tracking-wider uppercase text-sm">Günün Yapay Zeka Önerisi</span>
+            <Quote size={20} />
+            <span className="font-bold tracking-wider uppercase text-sm">Günün Çerkes Atasözü</span>
           </div>
           
-          {dailyPairing ? (
-            <div className="animate-fade-in">
-              <h3 className="text-3xl md:text-4xl font-bold serif mb-4 leading-tight">
-                {dailyPairing.title}
-              </h3>
-              <p className="text-stone-300 text-lg leading-relaxed border-l-4 border-amber-500 pl-4 italic">
-                "{dailyPairing.text}"
-              </p>
-            </div>
-          ) : (
-             <div className="flex items-center gap-3">
-               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-500"></div>
-               <p className="text-stone-400">Kitap kurdu yapay zeka düşünüyor...</p>
-             </div>
-          )}
+          <div className="animate-fade-in">
+            <p className="text-2xl md:text-3xl font-bold serif mb-4 leading-tight italic">
+              "{currentProverb}"
+            </p>
+            <p className="text-stone-400 text-sm border-t border-stone-700 pt-4 mt-4 inline-block">
+              Değişen Atasözleri
+            </p>
+          </div>
         </div>
       </div>
     </div>

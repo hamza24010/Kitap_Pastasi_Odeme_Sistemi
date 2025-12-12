@@ -5,7 +5,7 @@ import { OrderModal } from './components/OrderModal';
 import { MenuManagement } from './components/MenuManagement';
 import { Dashboard } from './components/Dashboard';
 import { AdminPanel } from './components/AdminPanel';
-import { DebtList } from './components/DebtList'; // Will create this next
+import { DebtList } from './components/DebtList';
 import { StorageService, DailyStats } from './services/storageService';
 import { ApiService } from './services/apiService';
 import { Page, Table, Product, CartItem } from './types';
@@ -126,6 +126,14 @@ function App() {
     setTables(prev => [...prev, newTable]);
   };
 
+  const handleRenameTable = (tableId: number, newName: string) => {
+    setTables(prev => prev.map(t => t.id === tableId ? { ...t, name: newName } : t));
+  };
+
+  const handleRemoveTable = (tableId: number) => {
+    setTables(prev => prev.filter(t => t.id !== tableId));
+  };
+
   const handleTransferTable = (sourceId: number, targetId: number) => {
     const sourceTable = tables.find(t => t.id === sourceId);
     const targetTable = tables.find(t => t.id === targetId);
@@ -202,36 +210,45 @@ function App() {
     <div className="flex h-screen w-screen bg-stone-50 text-stone-900 font-sans">
       <Sidebar activePage={activePage} setPage={setActivePage} />
       
-      <main className="flex-1 h-full overflow-hidden relative">
-        {activePage === 'dashboard' && (
-          <Dashboard
-            tables={tables}
-            products={products}
-            dailyStats={dailyStats}
-            onEndDay={handleClearTables}
-          />
-        )}
+      <main className="flex-1 h-full overflow-hidden relative flex flex-col">
+        <div className="flex-1 overflow-hidden relative">
+            {activePage === 'dashboard' && (
+            <Dashboard
+                tables={tables}
+                products={products}
+                dailyStats={dailyStats}
+                onEndDay={handleClearTables}
+            />
+            )}
 
-        {activePage === 'pos' && (
-          <TableGrid
-            tables={tables}
-            onSelectTable={setSelectedTableId}
-            onAddPerson={handleAddPerson}
-            onAddTable={handleAddTable}
-          />
-        )}
+            {activePage === 'pos' && (
+            <TableGrid
+                tables={tables}
+                onSelectTable={setSelectedTableId}
+                onAddPerson={handleAddPerson}
+                onAddTable={handleAddTable}
+                onRenameTable={handleRenameTable}
+                onRemoveTable={handleRemoveTable}
+            />
+            )}
 
-        {activePage === 'menu' && (
-          <MenuManagement products={products} onUpdateProducts={handleUpdateProducts} />
-        )}
+            {activePage === 'menu' && (
+            <MenuManagement products={products} onUpdateProducts={handleUpdateProducts} />
+            )}
 
-        {activePage === 'admin' && (
-          <AdminPanel />
-        )}
+            {activePage === 'admin' && (
+            <AdminPanel />
+            )}
 
-        {activePage === 'debt' && (
-          <DebtList onPayment={handlePayment} />
-        )}
+            {activePage === 'debt' && (
+            <DebtList onPayment={handlePayment} />
+            )}
+        </div>
+
+        {/* Footer */}
+        <div className="bg-stone-100 py-2 text-center text-xs text-stone-400 border-t border-stone-200">
+            With love to the Kitap Pastası family, from Şamil
+        </div>
       </main>
 
       {/* Modals */}
