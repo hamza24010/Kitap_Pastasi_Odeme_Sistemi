@@ -3,14 +3,18 @@
 
 Bu proje, React ile geliştirilmiş POS sisteminin **birebir aynı arayüze sahip** Windows masaüstü uygulamasını oluşturur.
 
-## 🚀 Hızlı Kurulum ve Oluşturma
+## 🚀 En Kolay Kurulum (Windows)
 
-Tek bir komutla uygulamanızı hazır hale getirebilirsiniz.
+1. Bilgisayarınızda **Python** ve **Node.js** yüklü olduğundan emin olun.
+2. Klasördeki **`build.bat`** dosyasına çift tıklayın.
+3. İşlem bittiğinde siyah pencere size tamamlandığını söyleyecektir.
+4. Oluşturulan uygulamanızı **`dist`** klasörü içinde **`KitapPastasiPOS.exe`** olarak bulabilirsiniz.
 
-**Gereksinimler:** Node.js ve Python yüklü olmalıdır.
+---
 
-1. Terminali açın.
-2. Aşağıdaki komutu çalıştırın:
+## Terminal ile Kurulum
+
+Eğer terminal kullanmayı tercih ederseniz:
 
 ```bash
 python build_app.py
