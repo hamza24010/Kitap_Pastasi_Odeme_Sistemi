@@ -6,9 +6,10 @@ interface TableGridProps {
   tables: Table[];
   onSelectTable: (tableId: number) => void;
   onAddPerson?: (name: string) => void;
+  onAddTable?: (name: string, section: 'indoor' | 'outdoor') => void;
 }
 
-export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onAddPerson }) => {
+export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onAddPerson, onAddTable }) => {
   const [activeTab, setActiveTab] = useState<'indoor' | 'outdoor' | 'person'>('indoor');
 
   const filteredTables = tables.filter(t => {
@@ -20,6 +21,14 @@ export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onA
     const name = prompt("Kişi/Adisyon Adı Giriniz:");
     if (name && onAddPerson) {
       onAddPerson(name);
+    }
+  };
+
+  const handleAddTable = () => {
+    if (activeTab === 'person') return;
+    const name = prompt(`${activeTab === 'indoor' ? 'İç Mekan' : 'Dış Mekan'} için Masa Adı/No Giriniz:`);
+    if (name && onAddTable) {
+      onAddTable(name, activeTab);
     }
   };
 
@@ -52,8 +61,8 @@ export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onA
         </div>
       </div>
       
-      {activeTab === 'person' && (
-        <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex justify-end">
+        {activeTab === 'person' ? (
           <button
             onClick={handleAddPerson}
             className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-amber-700 transition-colors shadow-md"
@@ -61,13 +70,21 @@ export const TableGrid: React.FC<TableGridProps> = ({ tables, onSelectTable, onA
             <Plus size={20} />
             Yeni Kişi Ekle
           </button>
-        </div>
-      )}
+        ) : (
+          <button
+            onClick={handleAddTable}
+            className="flex items-center gap-2 bg-stone-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-stone-800 transition-colors shadow-md"
+          >
+            <Plus size={20} />
+            Masa Ekle
+          </button>
+        )}
+      </div>
 
       {filteredTables.length === 0 ? (
          <div className="flex-1 flex flex-col items-center justify-center text-stone-400 min-h-[400px]">
            <p className="text-xl">Bu bölümde henüz kayıt yok.</p>
-           {activeTab === 'person' && <p className="text-sm mt-2">Sağ üstteki butondan yeni kişi ekleyebilirsiniz.</p>}
+           <p className="text-sm mt-2">Sağ üstteki butondan ekleme yapabilirsiniz.</p>
          </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-8">

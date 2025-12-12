@@ -103,6 +103,19 @@ function App() {
     setSelectedTableId(newId);
   };
 
+  const handleAddTable = (name: string, section: 'indoor' | 'outdoor') => {
+    const newId = Math.max(...tables.map(t => t.id), 0) + 1;
+    const newTable: Table = {
+      id: newId,
+      name: name,
+      isOccupied: false,
+      orders: [],
+      type: 'table',
+      section: section
+    };
+    setTables(prev => [...prev, newTable]);
+  };
+
   const selectedTable = tables.find(t => t.id === selectedTableId);
 
   return (
@@ -124,6 +137,7 @@ function App() {
             tables={tables}
             onSelectTable={setSelectedTableId}
             onAddPerson={handleAddPerson}
+            onAddTable={handleAddTable}
           />
         )}
 
