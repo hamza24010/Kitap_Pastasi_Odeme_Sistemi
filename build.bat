@@ -1,6 +1,11 @@
 @echo off
 echo Kitap Pastasi POS - Windows Uygulamasi Hazirlaniyor...
 echo.
+echo ONEMLI NOT:
+echo Eger bu uygulamayi Windows 7'de calistiracaksaniz,
+echo bilgisayarinizda kurulu Python surumunun 3.8.x oldugundan emin olun.
+echo Python 3.9 ve uzeri Windows 7'yi desteklemez.
+echo.
 echo Bu islem sirasiyla sunlari yapacaktir:
 echo 1. Gerekli kutuphaneleri (npm ve pip) yukler
 echo 2. Web arayuzunu derler
