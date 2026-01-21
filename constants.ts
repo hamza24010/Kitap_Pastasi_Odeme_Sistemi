@@ -55,5 +55,7 @@ export const INITIAL_TABLES: Table[] = Array.from({ length: 12 }, (_, i) => ({
   id: i + 1,
   name: `Masa ${i + 1}`,
   isOccupied: false,
-  orders: []
+  orders: [],
+  type: 'table',
+  section: i < 6 ? 'indoor' : 'outdoor'
 }));

@@ -19,7 +19,9 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ products, onUpda
     price: 0,
     category: Category.COFFEE,
     description: '',
-    image: ''
+    image: '',
+    isStocked: false,
+    stockQuantity: 0
   });
 
   const resetForm = () => {
@@ -28,7 +30,9 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ products, onUpda
       price: 0,
       category: Category.COFFEE,
       description: '',
-      image: ''
+      image: '',
+      isStocked: false,
+      stockQuantity: 0
     });
     setIsEditing(false);
     setEditingId(null);
@@ -40,7 +44,9 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ products, onUpda
       price: product.price,
       category: product.category,
       description: product.description || '',
-      image: product.image || ''
+      image: product.image || '',
+      isStocked: product.isStocked || false,
+      stockQuantity: product.stockQuantity || 0
     });
     setEditingId(product.id);
     setIsEditing(true);
@@ -101,6 +107,7 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ products, onUpda
                 <th className="p-4">Ürün Adı</th>
                 <th className="p-4">Kategori</th>
                 <th className="p-4">Fiyat</th>
+                <th className="p-4">Stok</th>
                 <th className="p-4">Açıklama</th>
                 <th className="p-4 text-right">İşlemler</th>
               </tr>
@@ -115,6 +122,17 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ products, onUpda
                     </span>
                   </td>
                   <td className="p-4 text-amber-700 font-bold">₺{product.price.toFixed(2)}</td>
+                  <td className="p-4">
+                    {product.isStocked ? (
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                        (product.stockQuantity || 0) < 5 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                      }`}>
+                        {product.stockQuantity} Adet
+                      </span>
+                    ) : (
+                      <span className="text-stone-400 text-xs">-</span>
+                    )}
+                  </td>
                   <td className="p-4 text-sm text-stone-500 max-w-xs truncate">{product.description}</td>
                   <td className="p-4 text-right space-x-2">
                     <button onClick={() => handleEdit(product)} className="text-amber-600 hover:text-amber-800 p-1">
@@ -179,6 +197,32 @@ export const MenuManagement: React.FC<MenuManagementProps> = ({ products, onUpda
                 onChange={e => setFormData({...formData, price: parseFloat(e.target.value)})}
                 className="w-full p-2 rounded-lg border border-stone-300 focus:ring-2 focus:ring-amber-500 outline-none"
               />
+            </div>
+
+            <div className="bg-stone-50 p-3 rounded-lg border border-stone-200">
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="checkbox"
+                  id="isStocked"
+                  checked={formData.isStocked}
+                  onChange={e => setFormData({...formData, isStocked: e.target.checked})}
+                  className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                />
+                <label htmlFor="isStocked" className="text-sm font-medium text-stone-700 select-none">Stok Takibi Yap</label>
+              </div>
+
+              {formData.isStocked && (
+                <div>
+                  <label className="block text-xs font-medium text-stone-500 mb-1">Stok Adedi</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.stockQuantity}
+                    onChange={e => setFormData({...formData, stockQuantity: parseInt(e.target.value)})}
+                    className="w-full p-2 rounded-lg border border-stone-300 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                  />
+                </div>
+              )}
             </div>
 
             <div>

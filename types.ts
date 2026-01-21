@@ -13,6 +13,8 @@ export interface Product {
   category: Category;
   description?: string;
   image?: string;
+  isStocked?: boolean;
+  stockQuantity?: number;
 }
 
 export interface CartItem {
@@ -22,12 +24,28 @@ export interface CartItem {
   quantity: number;
 }
 
+export type TableSection = 'indoor' | 'outdoor';
+export type TableType = 'table' | 'person';
+
 export interface Table {
   id: number;
   name: string;
   isOccupied: boolean;
   orders: CartItem[];
   openedAt?: string; // ISO Date string
+  section?: TableSection;
+  type?: TableType;
+  paidAmount?: number;
 }
 
-export type Page = 'dashboard' | 'pos' | 'menu' | 'settings';
+export interface Debt {
+  id: number;
+  name: string;
+  total_amount: number;
+  remaining_amount: number;
+  items: CartItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export type Page = 'dashboard' | 'pos' | 'menu' | 'settings' | 'admin' | 'debt';
